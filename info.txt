@@ -10,7 +10,7 @@
 
 # Tarea 2
 
-# Fecha: 
+# Fecha: 6/10/2024
 
-# Estatus []
+# Estatus [Regular]
 

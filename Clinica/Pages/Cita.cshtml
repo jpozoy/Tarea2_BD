@@ -1,0 +1,270 @@
+﻿@page
+@using MySql.Data.MySqlClient
+@using System
+@using System.Collections.Generic
+@using Clinica
+
+
+
+@{
+    // Instancia de la clase CrearCita
+    CrearRegistros crearCita = new CrearRegistros();
+
+    // Lista para almacenar los pacientes
+    var pacientes = crearCita.ObtenerPacientes();
+
+    // Lista para almacenar médicos
+    var medicos = crearCita.ObtenerMedicos();
+
+    // Lista para almacenar medicamentos
+    var medicamentos = crearCita.ObtenerMedicamentos();
+
+    // Variable para controlar la visualización del formulario
+    var mostrarFormulario = Request.Query["mostrarFormulario"].ToString() == "true";
+
+    // Variables para manejar la lógica del registro de la cita
+    string mensajeExito = null;
+    string mensajeError = null;
+
+    if (Request.Method == "POST")
+    {
+        try
+        {
+            // Recoger los valores del formulario
+            int pacienteId = int.Parse(Request.Form["paciente"]);
+            int medicoId = int.Parse(Request.Form["medico"]);
+
+            // Obtener los medicamentos seleccionados
+            List<int> medicamentosSeleccionados = Request.Form["medicamentosSeleccionados"].Select(int.Parse).ToList();
+
+            // Preparar un diccionario para las dosificaciones
+            Dictionary<int, string> dosificaciones = new Dictionary<int, string>();
+
+            foreach (var medicamentoId in medicamentosSeleccionados)
+            {
+                string dosificacion = Request.Form["dosificacion_" + medicamentoId];
+                if (!string.IsNullOrEmpty(dosificacion))
+                {
+                    dosificaciones.Add(medicamentoId, dosificacion);
+                }
+            }
+
+            string motivo = Request.Form["motivo"];
+            string resultados = Request.Form["resultados"];
+            DateTime fechaInicio = DateTime.Parse(Request.Form["fechaInicio"]);
+            DateTime fechaFin = DateTime.Parse(Request.Form["fechaFin"]);
+            string tipoTratamiento = Request.Form["tipoTratamiento"];
+            string descripcionTratamiento = Request.Form["descripcionTratamiento"];
+            DateTime fechaInicioTratamiento = DateTime.Parse(Request.Form["fechaInicioTratamiento"]);
+            DateTime fechaFinTratamiento = DateTime.Parse(Request.Form["fechaFinTratamiento"]);
+
+            // Llamar al método para registrar la cita
+            crearCita.RegistrarCita(pacienteId, medicoId, medicamentosSeleccionados, motivo, resultados, fechaInicio, fechaFin, tipoTratamiento, descripcionTratamiento, fechaInicioTratamiento, fechaFinTratamiento, dosificaciones);
+
+            mensajeExito = "La cita fue registrada exitosamente.";
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error al registrar la cita: " + ex.Message;
+        }
+    }
+    // Cargar citas
+    // Lista para almacenar los padecimientos por año
+    var citasCompletas = new List<dynamic>();
+    // Instancia de la clase de conexión
+    var conexion = new ConexionMySQL();
+    using (var connection = conexion.AbrirConexion())
+    {
+        if (connection.State == System.Data.ConnectionState.Open)
+        {
+            string queryCitas = "SELECT id_cita, Nombre_Paciente, Nombre_Medico, Tratamiento, Tipo_Tratamiento, Resultados, Medicamentos FROM VistaCitaCompleta";
+            using (var command = new MySqlCommand(queryCitas, connection))
+            {
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        citasCompletas.Add(new
+                        {
+                            IdCita = reader.GetInt32("id_cita"),
+                            NombrePaciente = reader.GetString("Nombre_Paciente"),
+                            NombreMedico = reader.GetString("Nombre_Medico"),
+                            Tratamiento = reader.GetString("Tratamiento"),
+                            TipoTratamiento = reader.GetString("Tipo_Tratamiento"),
+                            Resultados = reader.GetString("Resultados"),
+                            Medicamentos = reader.GetString("Medicamentos")
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+}
+
+<h2>Citas</h2>
+
+<div class="form-section">
+    <h3>Registrar Nueva Cita</h3>
+    <h4>Información General</h4>
+    <form method="post">
+        <div>
+            <label>Paciente</label>
+            <select name="paciente" required>
+                <option value="">Seleccione un paciente</option>
+                @foreach (var paciente in pacientes)
+                {
+                    <option value="@paciente.Id">@paciente.Nombre</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label>Medico</label>
+            <select name="medico" required>
+                <option value="">Seleccione un médico</option>
+                @foreach (var medico in medicos)
+                {
+                    <option value="@medico.Id">@medico.Nombre</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <h4>Medicamentos y Dosificación</h4>
+            <div id="medicamentos-container">
+                @foreach (var medicamento in medicamentos)
+                {
+                    <div>
+                        <input type="checkbox" name="medicamentosSeleccionados" value="@medicamento.Id" />
+                        <label>@medicamento.Nombre</label>
+                        <input type="text" name="dosificacion_@medicamento.Id" placeholder="Dosificación" />
+                            
+                    </div>
+                }
+            </div>
+        </div>
+        <div>
+            <label>Motivo</label>
+            <input type="text" name="motivo" required />
+        </div>
+        <div>
+            <label>Resultados</label>
+            <input type="text" name="resultados" required />
+        </div>
+        <div>
+            <label>Fecha Inicio</label>
+            <input type="datetime-local" name="fechaInicio" required />
+        </div>
+        <div>
+            <label>Fecha Fin</label>
+            <input type="datetime-local" name="fechaFin" required />
+        </div>
+        <div>
+            <label>Tipo de Tratamiento</label>
+            <input type="text" name="tipoTratamiento" required />
+        </div>
+        <div>
+            <label>Descripción del Tratamiento</label>
+            <input type="text" name="descripcionTratamiento" required />
+        </div>
+        <div>
+            <label>Fecha Inicio Tratamiento</label>
+            <input type="datetime-local" name="fechaInicioTratamiento" required />
+        </div>
+        <div>
+            <label>Fecha Fin Tratamiento</label>
+            <input type="datetime-local" name="fechaFinTratamiento" required />
+        </div>
+        <div>
+            <button type="submit">Registrar Cita</button>
+        </div>
+    </form>
+</div>
+
+
+<h2>Detalle de Citas </h2>
+<div class="table-section">
+    <div class="grid-table">
+        <!-- Cabeceras -->
+        <div class="grid-header">ID Cita</div>
+        <div class="grid-header">Nombre Paciente</div>
+        <div class="grid-header">Nombre Médico</div>
+        <div class="grid-header">Tratamiento</div>
+        <div class="grid-header">Tipo de Tratamiento</div>
+        <div class="grid-header">Resultados</div>
+        <div class="grid-header">Medicamentos</div>
+        <!-- Datos -->
+        @foreach (var cita in citasCompletas)
+        {
+            <div class="grid-item">@cita.IdCita</div>
+            <div class="grid-item">@cita.NombrePaciente</div>
+            <div class="grid-item">@cita.NombreMedico</div>
+            <div class="grid-item">@cita.Tratamiento</div>
+            <div class="grid-item">@cita.TipoTratamiento</div>
+            <div class="grid-item">@cita.Resultados</div>
+            <div class="grid-item">@cita.Medicamentos</div>
+        }
+    </div>
+</div>
+
+<style>
+
+    .form-section {
+        margin-top: 20px;
+    }
+
+    .form-section form div {
+        margin-bottom: 10px;
+    }
+
+    .form-section form div label {
+        margin-right: 10px;
+        font-weight: bold;
+    }
+
+    .form-section form div input {
+        padding: 5px;
+    }
+
+    .form-section form button {
+        padding: 8px 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .form-section form button:hover {
+        background-color: #218838;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer; /* Cambia el cursor a "puntero" al pasar por encima */
+    }
+
+    input[type="checkbox"] {
+        background-color: #f3f3f3;
+        border: 2px solid #999;
+        border-radius: 4px;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    /* Estilo cuando el checkbox está marcado */
+    input[type="checkbox"]:checked {
+        background-color: #4caf50;
+        border-color: #4caf50;
+    }
+
+    /* Para que aparezca un ícono de check cuando está marcado */
+    input[type="checkbox"]:checked::before {
+        content: '✔';
+        color: white;
+        display: block;
+        text-align: center;
+        line-height: 20px;
+        font-size: 16px;
+    }
+</style>

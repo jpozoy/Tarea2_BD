@@ -1,0 +1,114 @@
+html {
+    font-size: 14px;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    appearance: none;
+    border: 0;
+    text-decoration: none;
+    list-style: none;
+    box-sizing: border-box;
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: #f6f6f9;
+}
+
+i {
+    color: #363949
+}
+
+a {
+    color: #363949;
+    text-decoration: none;
+    margin: 1rem
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 20%;
+    height: 100%;
+    padding: 20px;
+    background-color: white;
+    box-shadow: 3px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+main.main-content {
+    margin-left: 20%;
+}
+
+aside .sidebar li {
+    display: flex;
+    align-items: center;
+    margin-left: 2rem;
+    transition: all 300ms ease;
+}
+
+.nav-item i {
+    font-size: 1.6rem;
+    transition: all 300ms ease;
+}
+
+.nav-item.active {
+    background-color: #f8f9fa;
+    margin-left: 1rem
+}
+
+    .nav-item.active:before {
+        content: "";
+        display: block;
+        width: 6px;
+        height: 100%;
+        background: #7380ec;
+    }
+
+.nav-item a:hover {
+    color: #363949;
+    text-decoration: none;
+}
+
+.nav-item:hover i {
+    margin-left: 1rem;
+}
+
+/*Estilos de Tabla*/
+.grid-table {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr); /* Tres columnas de igual tama o */
+    gap: 10px; /* Espacio entre celdas */
+    background-color: #f8f8f8;
+    padding: 10px;
+}
+
+.grid-header {
+    font-weight: bold;
+    background-color: #e2e2e2;
+    padding: 10px;
+    border-bottom: 2px solid #ccc;
+}
+
+.grid-item {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
