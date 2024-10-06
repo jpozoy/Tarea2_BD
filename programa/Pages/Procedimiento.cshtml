@@ -1,0 +1,275 @@
+﻿@page
+@using MySql.Data.MySqlClient
+@using System
+@using System.Collections.Generic
+@using Clinica
+@{
+    // Instancia de la clase CrearCita
+    CrearRegistros crearRegistros = new CrearRegistros();
+
+    // Lista para almacenar los pacientes
+    var pacientes = crearRegistros.ObtenerPacientes();
+
+    // Lista para almacenar médicos
+    var medicos = crearRegistros.ObtenerMedicos();
+
+    // Lista para almacenar medicamentos
+    var medicamentos = crearRegistros.ObtenerMedicamentos();
+    var mostrarFormulario = Request.Query["mostrarFormulario"].ToString() == "true";
+
+    string mensajeExito = null;
+    string mensajeError = null;
+    if (Request.Method == "POST")
+    {
+        try
+        {
+            int pacienteId = int.Parse(Request.Form["paciente"]);
+            int medicoId = int.Parse(Request.Form["medico"]);
+            List<int> medicosSeleccionados = Request.Form["medicosSeleccionados"].Select(int.Parse).ToList();
+            // Obtener los medicamentos seleccionados
+            List<int> medicamentosSeleccionados = Request.Form["medicamentosSeleccionados"].Select(int.Parse).ToList();
+            // Obtener el personal seleccionado
+            List<int> personalSeleccionado = Request.Form["personalSeleccionado"].Select(int.Parse).ToList();
+
+
+            string resultados = Request.Form["resultados"];
+            string epicrisis = Request.Form["epicrisis"];
+            DateTime fechaInicio = DateTime.Parse(Request.Form["fechaInicio"]);
+            DateTime fechaFin = DateTime.Parse(Request.Form["fechaFin"]);
+            string tipoTratamiento = Request.Form["tipoTratamiento"];
+            string descripcionTratamiento = Request.Form["descripcionTratamiento"];
+            DateTime fechaInicioTratamiento = DateTime.Parse(Request.Form["fechaInicioTratamiento"]);
+            DateTime fechaFinTratamiento = DateTime.Parse(Request.Form["fechaFinTratamiento"]);
+
+
+            // Preparar un diccionario para las dosificaciones
+            Dictionary<int, string> dosificaciones = new Dictionary<int, string>();
+
+            foreach (var medicamentoId in medicamentosSeleccionados)
+            {
+                string dosificacion = Request.Form["dosificacion_" + medicamentoId];
+                if (!string.IsNullOrEmpty(dosificacion))
+                {
+                    dosificaciones.Add(medicamentoId, dosificacion);
+                }
+            }
+            // Llamar al método para registrar el procedimiento
+            crearRegistros.RegistrarProcedimiento(pacienteId, medicoId, medicosSeleccionados, epicrisis, fechaInicio, fechaFin, tipoTratamiento, descripcionTratamiento, fechaInicioTratamiento, fechaFinTratamiento, medicamentosSeleccionados, dosificaciones, personalSeleccionado);
+
+            // Agregar la lógica para los medicamentos y personal adicional aquí si es necesario
+
+            mensajeExito = "El procedimiento fue registrado exitosamente.";
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error al registrar el procedimiento: " + ex.Message;
+        }
+    }
+    // Cargar citas
+    // Lista para almacenar los padecimientos por año
+    var procedimientosCompletos = new List<dynamic>();
+    // Instancia de la clase de conexión
+    var conexion = new ConexionMySQL();
+    using (var connection = conexion.AbrirConexion())
+    {
+        if (connection.State == System.Data.ConnectionState.Open)
+        {
+            string queryProcedimientos = "SELECT id_procedimiento, Nombre_Paciente, Nombre_Medico, Tratamiento, Tipo_Tratamiento, Epicrisis, Medicamentos FROM VistaProcedimientoCompleto";
+
+            using (var command = new MySqlCommand(queryProcedimientos, connection))
+            {
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        procedimientosCompletos.Add(new
+                        {
+                            IdProcedimiento = reader.GetInt32("id_procedimiento"),
+                            NombrePaciente = reader.GetString("Nombre_Paciente"),
+                            NombreMedico = reader.GetString("Nombre_Medico"),
+                            Tratamiento = reader.GetString("Tratamiento"),
+                            TipoTratamiento = reader.GetString("Tipo_Tratamiento"),
+                            Epicrisis = reader.GetString("Epicrisis"),
+                            Medicamentos = reader.GetString("Medicamentos")
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+}
+<h2>Procedimientos</h2>
+<div class="form-section">
+    <h3>Registrar Nueva Cita</h3>
+    <h4>Información General</h4>
+    <form method="post">
+        <div>
+            <label>Paciente</label>
+            <select name="paciente" required>
+                <option value="">Seleccione un paciente</option>
+                @foreach (var paciente in pacientes)
+                {
+                    <option value="@paciente.Id">@paciente.Nombre</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label>Medico</label>
+            <select name="medico" required>
+                <option value="">Seleccione un médico</option>
+                @foreach (var medico in medicos)
+                {
+                    <option value="@medico.Id">@medico.Nombre</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label>Epicrisis</label>
+            <input type="text" name="Epicrisis" required />
+        </div>
+        <div>
+            <h4>Medicamentos y Dosificación</h4>
+            <div id="medicamentos-container">
+                @foreach (var medicamento in medicamentos)
+                {
+                    <div>
+                        <input type="checkbox" name="medicamentosSeleccionados" value="@medicamento.Id" />
+                        <label>@medicamento.Nombre</label>
+                        <input type="text" name="dosificacion_@medicamento.Id" placeholder="Dosificación" />
+
+                    </div>
+                }
+            </div>
+        </div>
+        <div>
+            <label>Fecha Inicio</label>
+            <input type="datetime-local" name="fechaInicio" required />
+        </div>
+        <div>
+            <label>Fecha Fin</label>
+            <input type="datetime-local" name="fechaFin" required />
+        </div>
+        <h4>Inforamación de Tratamiento</h4>
+        <div>
+            <label>Tipo de Tratamiento</label>
+            <input type="text" name="tipoTratamiento" required />
+        </div>
+        <div>
+            <label>Descripción del Tratamiento</label>
+            <input type="text" name="descripcionTratamiento" required />
+        </div>
+        <div>
+            <label>Fecha Inicio Tratamiento</label>
+            <input type="datetime-local" name="fechaInicioTratamiento" required />
+        </div>
+        <div>
+            <label>Fecha Fin Tratamiento</label>
+            <input type="datetime-local" name="fechaFinTratamiento" required />
+        </div>
+        <div>
+            <h4>Personal Adicional</h4>
+            <div id="personal-container" style="margin-top: 10px;">
+                <label for="personalSeleccionado">Selecciona el personal adicional:</label>
+                <select name="personalSeleccionado" id="personalSeleccionado" multiple style="display: block; margin-top: 5px; width: 100%; height: 100px;">
+                    @foreach (var personal in medicos)
+                    {
+                        <option value="@personal.Id">@personal.Nombre</option>
+                    }
+                </select>
+                <small style="display: block; margin-top: 5px;">(Mantén presionada la tecla Ctrl para seleccionar múltiples médicos)</small>
+            </div>
+        </div>
+        <div>
+            <button type="submit">Registrar Procedimiento</button>
+        </div>
+    </form>
+</div>
+
+<h2>Procedimientos Completos</h2>
+<div class="table-section">
+    <div class="grid-table">
+        <!-- Cabeceras -->
+        <div class="grid-header">ID Procedimiento</div>
+        <div class="grid-header">Paciente</div>
+        <div class="grid-header">Médico</div>
+        <div class="grid-header">Tratamiento</div>
+        <div class="grid-header">Tipo de Tratamiento</div>
+        <div class="grid-header">Resultados</div>
+        <div class="grid-header">Medicamentos</div>
+
+        <!-- Datos -->
+        @foreach (var procedimiento in procedimientosCompletos)
+        {
+            <div class="grid-item">@procedimiento.IdProcedimiento</div>
+            <div class="grid-item">@procedimiento.NombrePaciente</div>
+            <div class="grid-item">@procedimiento.NombreMedico</div>
+            <div class="grid-item">@procedimiento.Tratamiento</div>
+            <div class="grid-item">@procedimiento.TipoTratamiento</div>
+            <div class="grid-item">@procedimiento.Epicrisis</div>
+            <div class="grid-item">@procedimiento.Medicamentos</div>
+        }
+    </div>
+</div>
+
+<style>
+
+    .form-section {
+        margin-top: 20px;
+    }
+
+    .form-section form div {
+        margin-bottom: 10px;
+    }
+
+    .form-section form div label {
+        margin-right: 10px;
+        font-weight: bold;
+    }
+
+    .form-section form div input {
+        padding: 5px;
+    }
+
+    .form-section form button {
+        padding: 8px 15px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .form-section form button:hover {
+        background-color: #218838;
+    }
+
+    input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer; /* Cambia el cursor a "puntero" al pasar por encima */
+    }
+
+    input[type="checkbox"] {
+        background-color: #f3f3f3;
+        border: 2px solid #999;
+        border-radius: 4px;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+    /* Estilo cuando el checkbox está marcado */
+    input[type="checkbox"]:checked {
+        background-color: #4caf50;
+        border-color: #4caf50;
+    }
+
+    /* Para que aparezca un ícono de check cuando está marcado */
+    input[type="checkbox"]:checked::before {
+        content: '✔';
+        color: white;
+        display: block;
+        text-align: center;
+        line-height: 20px;
+        font-size: 16px;
+    }
+</style>
